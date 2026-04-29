@@ -1,0 +1,1548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Labour Code Applicability Checker</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0f0e0c;
+    --paper: #f5f0e8;
+    --cream: #ede8dc;
+    --gold: #b8860b;
+    --gold-light: #d4a017;
+    --gold-pale: #f0e4b0;
+    --rule: #c8b88a;
+    --muted: #7a6f5a;
+    --red: #8b2020;
+    --green: #1a5c2a;
+    --green-pale: #e8f4ec;
+    --red-pale: #f5e8e8;
+    --amber: #7a4a00;
+    --amber-pale: #fdf0d0;
+    --blue: #1a3a5c;
+    --blue-pale: #e8eff8;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    min-height: 100vh;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  /* HEADER */
+  .masthead {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 0;
+    border-bottom: 3px solid var(--gold);
+    position: relative;
+    overflow: hidden;
+  }
+  .masthead::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 80px,
+      rgba(184,134,11,0.04) 80px,
+      rgba(184,134,11,0.04) 81px
+    );
+  }
+  .masthead-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px 40px 28px;
+    position: relative;
+  }
+  .masthead-kicker {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gold-light);
+    margin-bottom: 8px;
+  }
+  .masthead h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(28px, 4vw, 44px);
+    line-height: 1.15;
+    color: var(--paper);
+    font-weight: 400;
+  }
+  .masthead h1 em {
+    color: var(--gold-light);
+    font-style: italic;
+  }
+  .masthead-sub {
+    margin-top: 10px;
+    color: rgba(245,240,232,0.6);
+    font-size: 13px;
+    font-weight: 300;
+  }
+  .masthead-badges {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+  }
+  .badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border: 1px solid rgba(184,134,11,0.4);
+    color: var(--gold-light);
+    border-radius: 2px;
+  }
+
+  /* LAYOUT */
+  .main-wrap {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 40px 40px 80px;
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 40px;
+    align-items: start;
+  }
+
+  /* FORM PANEL */
+  .form-panel {
+    background: white;
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    position: sticky;
+    top: 24px;
+  }
+  .form-panel-header {
+    background: var(--cream);
+    border-bottom: 1px solid var(--rule);
+    padding: 16px 24px;
+  }
+  .form-panel-header h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 16px;
+    font-weight: 400;
+    color: var(--ink);
+  }
+  .form-panel-body {
+    padding: 24px;
+  }
+
+  .field-group {
+    margin-bottom: 20px;
+  }
+  .field-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .field-note {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+    font-style: italic;
+  }
+
+  select, input[type="number"] {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--rule);
+    background: var(--paper);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    color: var(--ink);
+    border-radius: 2px;
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  select:focus, input[type="number"]:focus {
+    outline: none;
+    border-color: var(--gold);
+    background: white;
+  }
+  .select-wrap {
+    position: relative;
+  }
+  .select-wrap::after {
+    content: '▾';
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    pointer-events: none;
+    font-size: 12px;
+  }
+
+  .checkbox-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  .checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px;
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.12s;
+    background: var(--paper);
+    user-select: none;
+  }
+  .checkbox-item:hover { border-color: var(--gold); background: var(--gold-pale); }
+  .checkbox-item input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+  }
+  .checkbox-item.checked {
+    border-color: var(--gold);
+    background: var(--gold-pale);
+  }
+  .checkbox-dot {
+    width: 14px;
+    height: 14px;
+    border: 1.5px solid var(--rule);
+    border-radius: 2px;
+    flex-shrink: 0;
+    position: relative;
+    transition: all 0.12s;
+  }
+  .checkbox-item.checked .checkbox-dot {
+    background: var(--gold);
+    border-color: var(--gold);
+  }
+  .checkbox-item.checked .checkbox-dot::after {
+    content: '✓';
+    position: absolute;
+    top: -1px;
+    left: 1px;
+    font-size: 10px;
+    color: white;
+    font-weight: bold;
+  }
+  .checkbox-text {
+    font-size: 12px;
+    color: var(--ink);
+    line-height: 1.3;
+  }
+
+  .check-btn {
+    width: 100%;
+    padding: 14px;
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 2px;
+    margin-top: 8px;
+    transition: background 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+  .check-btn:hover { background: var(--gold); color: var(--ink); }
+  .check-btn:active { transform: scale(0.99); }
+
+  .reset-btn {
+    width: 100%;
+    padding: 10px;
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--rule);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    cursor: pointer;
+    border-radius: 2px;
+    margin-top: 8px;
+    transition: all 0.15s;
+  }
+  .reset-btn:hover { border-color: var(--ink); color: var(--ink); }
+
+  /* RESULTS PANEL */
+  .results-panel { }
+
+  .results-placeholder {
+    background: white;
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    padding: 60px 40px;
+    text-align: center;
+    color: var(--muted);
+  }
+  .results-placeholder-icon {
+    font-size: 40px;
+    margin-bottom: 16px;
+    opacity: 0.3;
+  }
+  .results-placeholder p {
+    font-family: 'DM Serif Display', serif;
+    font-size: 18px;
+    color: var(--muted);
+    font-style: italic;
+  }
+  .results-placeholder small {
+    display: block;
+    margin-top: 8px;
+    font-size: 12px;
+    font-weight: 300;
+  }
+
+  /* CODE CARD */
+  .code-card {
+    background: white;
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    margin-bottom: 20px;
+    overflow: hidden;
+    animation: fadeUp 0.3s ease both;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .code-card:nth-child(2) { animation-delay: 0.05s; }
+  .code-card:nth-child(3) { animation-delay: 0.1s; }
+  .code-card:nth-child(4) { animation-delay: 0.15s; }
+
+  .code-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--rule);
+    cursor: pointer;
+    user-select: none;
+  }
+  .code-card-header:hover { background: var(--cream); }
+  .code-title-wrap { display: flex; align-items: center; gap: 12px; }
+  .code-number {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+  .code-name {
+    font-family: 'DM Serif Display', serif;
+    font-size: 16px;
+    font-weight: 400;
+    color: var(--ink);
+  }
+  .code-status-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 2px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .status-applicable {
+    background: var(--green-pale);
+    color: var(--green);
+    border: 1px solid rgba(26,92,42,0.2);
+  }
+  .status-not-applicable {
+    background: var(--red-pale);
+    color: var(--red);
+    border: 1px solid rgba(139,32,32,0.2);
+  }
+  .status-partial {
+    background: var(--amber-pale);
+    color: var(--amber);
+    border: 1px solid rgba(122,74,0,0.2);
+  }
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .status-applicable .status-dot { background: var(--green); }
+  .status-not-applicable .status-dot { background: var(--red); }
+  .status-partial .status-dot { background: var(--amber); }
+
+  .chevron {
+    color: var(--muted);
+    font-size: 12px;
+    margin-left: 8px;
+    transition: transform 0.2s;
+  }
+  .code-card.open .chevron { transform: rotate(180deg); }
+
+  .code-card-body {
+    display: none;
+    padding: 0;
+  }
+  .code-card.open .code-card-body { display: block; }
+
+  /* PROVISIONS TABLE */
+  .provisions-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .provisions-table tr {
+    border-bottom: 1px solid var(--cream);
+  }
+  .provisions-table tr:last-child { border-bottom: none; }
+  .provisions-table td {
+    padding: 10px 20px;
+    vertical-align: top;
+    font-size: 13px;
+  }
+  .provisions-table td:first-child {
+    width: 220px;
+    font-weight: 500;
+    color: var(--muted);
+    font-size: 12px;
+    padding-right: 12px;
+  }
+  .prov-applies { color: var(--green); font-weight: 600; }
+  .prov-notapplies { color: var(--red); font-weight: 600; }
+  .prov-conditional { color: var(--amber); font-weight: 600; }
+  .prov-na { color: var(--muted); }
+
+  .section-ref {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    background: var(--cream);
+    padding: 2px 6px;
+    border-radius: 2px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .threshold-row {
+    background: var(--cream);
+  }
+  .threshold-row td:first-child {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  /* NEXT STEPS */
+  .next-steps {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 16px 20px;
+    border-top: 1px solid var(--rule);
+  }
+  .next-steps-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--gold-light);
+    margin-bottom: 8px;
+  }
+  .next-steps ul {
+    list-style: none;
+    padding: 0;
+  }
+  .next-steps ul li {
+    font-size: 12px;
+    color: rgba(245,240,232,0.8);
+    padding: 4px 0;
+    padding-left: 16px;
+    position: relative;
+  }
+  .next-steps ul li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: var(--gold-light);
+  }
+
+  /* SUMMARY BAR */
+  .summary-bar {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 16px 24px;
+    border-radius: 2px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    animation: fadeUp 0.2s ease both;
+  }
+  .summary-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 14px;
+    font-style: italic;
+    color: rgba(245,240,232,0.7);
+  }
+  .summary-counts {
+    display: flex;
+    gap: 20px;
+  }
+  .summary-count {
+    text-align: center;
+  }
+  .summary-count-num {
+    font-family: 'DM Serif Display', serif;
+    font-size: 24px;
+    line-height: 1;
+    color: var(--paper);
+  }
+  .summary-count-label {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(245,240,232,0.5);
+    margin-top: 2px;
+  }
+  .summary-count.green .summary-count-num { color: #6abf7a; }
+  .summary-count.amber .summary-count-num { color: var(--gold-light); }
+  .summary-count.red .summary-count-num { color: #d47070; }
+
+  /* LEGAL DISCLAIMER */
+  .disclaimer {
+    margin-top: 32px;
+    padding: 16px 20px;
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--gold);
+    background: white;
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.6;
+    border-radius: 0 2px 2px 0;
+  }
+  .disclaimer strong { color: var(--ink); }
+
+  /* RESPONSIVE */
+  @media (max-width: 900px) {
+    .main-wrap {
+      grid-template-columns: 1fr;
+      padding: 24px 20px 60px;
+    }
+    .form-panel { position: static; }
+    .masthead-inner { padding: 24px 20px 20px; }
+  }
+
+  /* WATERMARK */
+  .code-watermark {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    color: var(--rule);
+    text-align: right;
+    padding: 8px 20px;
+    border-top: 1px solid var(--cream);
+    text-transform: uppercase;
+  }
+
+  .divider {
+    border: none;
+    border-top: 1px solid var(--rule);
+    margin: 16px 0;
+  }
+
+  /* CREATOR FOOTER */
+  .creator-footer {
+    background: var(--ink);
+    border-top: 3px solid var(--gold);
+    padding: 20px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .creator-footer-left {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .creator-name {
+    font-family: 'DM Serif Display', serif;
+    font-size: 18px;
+    color: var(--paper);
+    font-style: italic;
+  }
+  .creator-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--gold-light);
+  }
+  .creator-footer-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .creator-link {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: rgba(245,240,232,0.5);
+    text-decoration: none;
+    letter-spacing: 0.08em;
+    transition: color 0.15s;
+  }
+  .creator-link:hover { color: var(--gold-light); }
+
+  /* PDF EXPORT BUTTON */
+  .export-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: transparent;
+    border: 1px solid rgba(184,134,11,0.4);
+    color: var(--gold-light);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.15s;
+  }
+  .export-btn:hover {
+    background: var(--gold);
+    border-color: var(--gold);
+    color: var(--ink);
+  }
+
+  /* MASTHEAD AUTHOR LINE */
+  .masthead-author {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(184,134,11,0.2);
+  }
+  .masthead-author-name {
+    font-family: 'DM Serif Display', serif;
+    font-size: 13px;
+    color: var(--paper);
+    font-style: italic;
+  }
+  .masthead-author-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: rgba(245,240,232,0.4);
+  }
+
+  /* EXPORT TOOLBAR */
+  .export-toolbar {
+    display: none;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .export-toolbar.visible { display: flex; }
+  .export-toolbar-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: white;
+    border: 1px solid var(--rule);
+    color: var(--ink);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.15s;
+  }
+  .export-toolbar-btn:hover { border-color: var(--gold); background: var(--gold-pale); }
+
+  /* IMPROVED MOBILE */
+  @media (max-width: 600px) {
+    .masthead-badges { display: none; }
+    .creator-footer { padding: 16px 20px; }
+    .export-toolbar { margin-bottom: 12px; }
+    .summary-bar { flex-direction: column; align-items: flex-start; }
+  }
+
+  /* PRINT STYLES */
+  @media print {
+    .form-panel, .export-toolbar, .check-btn, .reset-btn, .creator-footer { display: none !important; }
+    .main-wrap { grid-template-columns: 1fr; padding: 0; }
+    .code-card-body { display: block !important; }
+    .masthead { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    body { font-size: 12px; }
+  }
+
+  .info-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--blue-pale);
+    color: var(--blue);
+    border: 1px solid rgba(26,58,92,0.15);
+    font-size: 11px;
+    padding: 3px 9px;
+    border-radius: 2px;
+    margin: 2px 2px 2px 0;
+    font-weight: 500;
+  }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead-inner">
+    <div class="masthead-kicker">Labour Compliance Tool</div>
+    <h1>Labour Code<br><em>Applicability Checker</em></h1>
+    <p class="masthead-sub">Verified against all four Labour Codes bare acts &mdash; as enacted and notified through November 2025</p>
+    <div class="masthead-badges">
+      <span class="badge">Code on Wages 2019</span>
+      <span class="badge">Industrial Relations Code 2020</span>
+      <span class="badge">Code on Social Security 2020</span>
+      <span class="badge">OSH Code 2020</span>
+    </div>
+    <div class="masthead-author">
+      <div>
+        <div class="masthead-author-label">Built by</div>
+        <div class="masthead-author-name">Ishwari Chaudhari</div>
+      </div>
+      <div style="width:1px;height:28px;background:rgba(184,134,11,0.3);margin:0 4px;"></div>
+      <div>
+        <div class="masthead-author-label">Student · HR Tech &amp; People Analytics</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="main-wrap">
+
+  <!-- FORM PANEL -->
+  <aside class="form-panel">
+    <div class="form-panel-header">
+      <h2>Establishment Details</h2>
+    </div>
+    <div class="form-panel-body">
+
+      <div class="field-group">
+        <label class="field-label">State / Union Territory</label>
+        <div class="select-wrap">
+          <select id="state">
+            <option value="">— Select State / UT —</option>
+            <optgroup label="States">
+              <option>Andhra Pradesh</option><option>Arunachal Pradesh</option>
+              <option>Assam</option><option>Bihar</option><option>Chhattisgarh</option>
+              <option>Goa</option><option>Gujarat</option><option>Haryana</option>
+              <option>Himachal Pradesh</option><option>Jharkhand</option>
+              <option>Karnataka</option><option>Kerala</option>
+              <option>Madhya Pradesh</option><option>Maharashtra</option>
+              <option>Manipur</option><option>Meghalaya</option><option>Mizoram</option>
+              <option>Nagaland</option><option>Odisha</option><option>Punjab</option>
+              <option>Rajasthan</option><option>Sikkim</option><option>Tamil Nadu</option>
+              <option>Telangana</option><option>Tripura</option>
+              <option>Uttar Pradesh</option><option>Uttarakhand</option>
+              <option>West Bengal</option>
+            </optgroup>
+            <optgroup label="Union Territories">
+              <option>Andaman &amp; Nicobar Islands</option>
+              <option>Chandigarh</option>
+              <option>Dadra &amp; Nagar Haveli and Daman &amp; Diu</option>
+              <option>Delhi (NCT)</option>
+              <option>Jammu &amp; Kashmir</option>
+              <option>Ladakh</option>
+              <option>Lakshadweep</option>
+              <option>Puducherry</option>
+            </optgroup>
+          </select>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Industry / Sector</label>
+        <div class="select-wrap">
+          <select id="industry">
+            <option value="">— Select Industry —</option>
+            <option value="factory_power">Factory (Manufacturing — with power aid)</option>
+            <option value="factory_nopower">Factory (Manufacturing — without power aid)</option>
+            <option value="mine">Mine</option>
+            <option value="plantation">Plantation (tea, coffee, rubber, etc.)</option>
+            <option value="construction">Building &amp; Other Construction Work</option>
+            <option value="transport">Motor Transport Undertaking</option>
+            <option value="newspaper">Newspaper Establishment</option>
+            <option value="dock">Dock Work / Port</option>
+            <option value="beedi">Beedi &amp; Cigar</option>
+            <option value="it_ites">IT / ITeS / Software</option>
+            <option value="retail">Retail / Shop / Commercial Est.</option>
+            <option value="healthcare">Healthcare / Hospital / Clinic</option>
+            <option value="education">Educational Institution</option>
+            <option value="hospitality">Hotel / Restaurant / Hospitality</option>
+            <option value="ngo">NGO / Charitable Organisation</option>
+            <option value="other">Other Service / Establishment</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Total Workers / Employees</label>
+        <input type="number" id="workers" min="0" max="100000" placeholder="e.g. 85">
+        <p class="field-note">Include all — permanent, contract, part-time (for threshold counting)</p>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Contract Labour Employed</label>
+        <input type="number" id="contract_labour" min="0" placeholder="e.g. 20 (enter 0 if none)">
+        <p class="field-note">Number of contract workers engaged through contractors</p>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Annual Turnover</label>
+        <div class="select-wrap">
+          <select id="turnover">
+            <option value="na">Not applicable / Not known</option>
+            <option value="under1cr">Under ₹1 crore</option>
+            <option value="1to5cr">₹1–5 crore</option>
+            <option value="5to10cr">₹5–10 crore</option>
+            <option value="over10cr">Over ₹10 crore</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Establishment Characteristics</label>
+        <div class="checkbox-grid">
+          <div class="checkbox-item" onclick="toggleCheck(this, 'chk_hazardous')">
+            <input type="checkbox" id="chk_hazardous"><div class="checkbox-dot"></div>
+            <span class="checkbox-text">Hazardous Process (First Schedule, OSH Code)</span>
+          </div>
+          <div class="checkbox-item" onclick="toggleCheck(this, 'chk_seasonal')">
+            <input type="checkbox" id="chk_seasonal"><div class="checkbox-dot"></div>
+            <span class="checkbox-text">Seasonal Establishment</span>
+          </div>
+          <div class="checkbox-item" onclick="toggleCheck(this, 'chk_interstate')">
+            <input type="checkbox" id="chk_interstate"><div class="checkbox-dot"></div>
+            <span class="checkbox-text">Employs Inter-State Migrant Workers</span>
+          </div>
+          <div class="checkbox-item" onclick="toggleCheck(this, 'chk_govt')">
+            <input type="checkbox" id="chk_govt"><div class="checkbox-dot"></div>
+            <span class="checkbox-text">Govt. / PSU Establishment</span>
+          </div>
+          <div class="checkbox-item" onclick="toggleCheck(this, 'chk_fixedterm')">
+            <input type="checkbox" id="chk_fixedterm"><div class="checkbox-dot"></div>
+            <span class="checkbox-text">Employs Fixed-Term Workers</span>
+          </div>
+          <div class="checkbox-item" onclick="toggleCheck(this, 'chk_women50')">
+            <input type="checkbox" id="chk_women50"><div class="checkbox-dot"></div>
+            <span class="checkbox-text">50+ Women Workers</span>
+          </div>
+        </div>
+      </div>
+
+      <button class="check-btn" onclick="runCheck()">Check Applicability →</button>
+      <button class="reset-btn" onclick="resetForm()">Reset Form</button>
+
+    </div>
+  </aside>
+
+  <!-- RESULTS PANEL -->
+  <main class="results-panel" id="results-panel">
+    <div id="export-toolbar" class="export-toolbar">
+      <button class="export-toolbar-btn" onclick="window.print()">⎙ Save as PDF</button>
+      <button class="export-toolbar-btn" onclick="copyReport()">⧉ Copy Report</button>
+    </div>
+    <div class="results-placeholder" id="placeholder">
+      <div class="results-placeholder-icon">⚖</div>
+      <p>Enter your establishment details to check which Labour Codes apply</p>
+      <small>Results will show applicable provisions with exact section references</small>
+    </div>
+  </main>
+
+</div>
+
+<script>
+function toggleCheck(el, id) {
+  el.classList.toggle('checked');
+  const cb = document.getElementById(id);
+  cb.checked = !cb.checked;
+}
+
+function resetForm() {
+  document.getElementById('state').value = '';
+  document.getElementById('industry').value = '';
+  document.getElementById('workers').value = '';
+  document.getElementById('contract_labour').value = '';
+  document.getElementById('turnover').value = 'na';
+  document.querySelectorAll('.checkbox-item').forEach(el => {
+    el.classList.remove('checked');
+    const id = el.onclick.toString().match(/'([^']+)'/)?.[1];
+    if (id) document.getElementById(id).checked = false;
+  });
+  document.getElementById('results-panel').innerHTML = `
+    <div class="results-placeholder" id="placeholder">
+      <div class="results-placeholder-icon">⚖</div>
+      <p>Enter your establishment details to check which Labour Codes apply</p>
+      <small>Results will show applicable provisions with exact section references</small>
+    </div>`;
+  document.getElementById('export-toolbar').classList.remove('visible');
+}
+
+function runCheck() {
+  const state = document.getElementById('state').value;
+  const industry = document.getElementById('industry').value;
+  const workers = parseInt(document.getElementById('workers').value) || 0;
+  const contractLabour = parseInt(document.getElementById('contract_labour').value) || 0;
+  const hazardous = document.getElementById('chk_hazardous').checked;
+  const seasonal = document.getElementById('chk_seasonal').checked;
+  const interstate = document.getElementById('chk_interstate').checked;
+  const isGovt = document.getElementById('chk_govt').checked;
+  const fixedTerm = document.getElementById('chk_fixedterm').checked;
+  const women50 = document.getElementById('chk_women50').checked;
+
+  if (!industry) {
+    alert('Please select an industry/sector to proceed.');
+    return;
+  }
+  if (!workers && workers !== 0) {
+    alert('Please enter the number of workers.');
+    return;
+  }
+
+  // Compute derived flags
+  const isFactory = industry === 'factory_power' || industry === 'factory_nopower';
+  const isFactoryPower = industry === 'factory_power';
+  const isFactoryNoPower = industry === 'factory_nopower';
+  const isMine = industry === 'mine';
+  const isPlantation = industry === 'plantation';
+  const isConstruction = industry === 'construction';
+  const isDock = industry === 'dock';
+  const isBeedi = industry === 'beedi';
+  const isTransport = industry === 'transport';
+  const isNGO = industry === 'ngo';
+
+  // OSH Code factory thresholds
+  const factoryAppliesOSH = isFactoryPower ? workers >= 20 : (isFactoryNoPower ? workers >= 40 : false);
+  const establishmentAppliesOSH = !isFactory && (workers >= 10 || isMine || isDock || hazardous);
+  const oshApplies = factoryAppliesOSH || establishmentAppliesOSH || isMine || isDock || isPlantation || isConstruction || isTransport || isBeedi;
+
+  // ─── CODE ON WAGES ───────────────────────────────────────────────────
+  const wages = {
+    name: 'Code on Wages, 2019',
+    act: 'Act No. 29 of 2019',
+    overall: 'applicable',
+    provisions: []
+  };
+
+  // Universal wage provisions — no threshold
+  wages.provisions.push({
+    name: 'Minimum Wages',
+    section: 'Sec. 6',
+    status: 'applies',
+    note: 'Applies universally — no minimum worker threshold. Appropriate Govt. fixes wages by skill, area, arduousness; reviewed at least every 5 years.'
+  });
+  wages.provisions.push({
+    name: 'Equal Remuneration',
+    section: 'Sec. 3',
+    status: 'applies',
+    note: 'Prohibits gender-based wage discrimination. Universal applicability — no threshold.'
+  });
+  wages.provisions.push({
+    name: 'Wage Payment Timelines',
+    section: 'Sec. 17',
+    status: 'applies',
+    note: 'Monthly wages: before 7th of succeeding month. Dismissed/resigned/retrenched: within 2 working days.'
+  });
+  wages.provisions.push({
+    name: 'Overtime Wages',
+    section: 'Sec. 14',
+    status: 'applies',
+    note: 'Minimum twice the normal rate for overtime. Universal applicability.'
+  });
+  wages.provisions.push({
+    name: 'Deductions from Wages',
+    section: 'Sec. 18',
+    status: 'applies',
+    note: 'Total deductions cannot exceed 50% of wages.'
+  });
+  wages.provisions.push({
+    name: 'Floor Wage',
+    section: 'Sec. 9',
+    status: 'applies',
+    note: 'Central Govt. fixes floor wage. State minimum wages cannot be below this floor.'
+  });
+
+  // Bonus
+  const bonusApplies = workers >= 20 && !isGovt && !isNGO;
+  const bonusExcluded = ['healthcare', 'education', 'ngo'].includes(industry);
+  wages.provisions.push({
+    name: 'Annual Bonus',
+    section: 'Sec. 41(2)',
+    status: bonusApplies && !bonusExcluded ? 'applies' : (bonusExcluded ? 'notapplies' : 'conditional'),
+    note: workers < 20
+      ? `Not applicable — requires ≥20 employees on any day during accounting year. Current: ${workers} workers.`
+      : bonusExcluded
+      ? 'Excluded category: Educational institutions, hospitals, and charitable social welfare establishments are explicitly exempt under Sec. 41(1).'
+      : isGovt
+      ? 'Government establishments are excluded from bonus provisions under Sec. 41(1).'
+      : `Applicable — ${workers} workers ≥ 20 threshold. Payable at minimum 8.33% of wages (max 20%).`
+  });
+
+  wages.overall = 'applicable'; // wages always applicable
+
+  // ─── INDUSTRIAL RELATIONS CODE ───────────────────────────────────────
+  const ir = {
+    name: 'Industrial Relations Code, 2020',
+    act: 'Act No. 35 of 2020',
+    provisions: []
+  };
+
+  // Strike notice — universal
+  ir.provisions.push({
+    name: 'Strike / Lock-out Notice',
+    section: 'Sec. 62',
+    status: 'applies',
+    note: '60 days written notice required before any strike or lock-out in ALL industrial establishments. Cannot strike within 14 days of notice.'
+  });
+
+  // Grievance Redressal Committee
+  const grcApplies = workers >= 20;
+  ir.provisions.push({
+    name: 'Grievance Redressal Committee',
+    section: 'Sec. 4',
+    status: grcApplies ? 'applies' : 'notapplies',
+    note: grcApplies
+      ? `Mandatory — ${workers} workers ≥ 20 threshold. Equal employer/worker representation; max 10 members. Must include women proportionately. Proceedings to be completed within 30 days.`
+      : `Not applicable — requires ≥20 workers. Current: ${workers} workers.`
+  });
+
+  // Works Committee
+  const wcApplies = workers >= 100;
+  ir.provisions.push({
+    name: 'Works Committee',
+    section: 'Sec. 3',
+    status: wcApplies ? 'applies' : 'notapplies',
+    note: wcApplies
+      ? `Mandatory — ${workers} workers ≥ 100 threshold. Worker reps must not be less than employer reps. Promotes amity and settles matters of common interest.`
+      : `Not applicable — requires ≥100 workers employed on any day in preceding 12 months. Current: ${workers} workers.`
+  });
+
+  // Standing Orders
+  const soApplies = workers >= 300;
+  ir.provisions.push({
+    name: 'Standing Orders',
+    section: 'Sec. 28',
+    status: soApplies ? 'applies' : 'notapplies',
+    note: soApplies
+      ? `Mandatory — ${workers} workers ≥ 300 threshold. Employer must prepare/adopt model standing orders within 6 months of applicability.`
+      : `Not applicable — requires ≥300 workers on any day in preceding 12 months. Current: ${workers} workers.`
+  });
+
+  // Trade Union recognition
+  ir.provisions.push({
+    name: 'Trade Union Recognition',
+    section: 'Sec. 14–27',
+    status: 'conditional',
+    note: 'Recognition triggered when a trade union claims it. Sole negotiating union if 51%+ support; otherwise negotiating council with unions having ≥20% support. Valid 3 years.'
+  });
+
+  // Chapter IX — Lay-off / Retrenchment / Closure
+  const ch9Applies = workers >= 50;
+  ir.provisions.push({
+    name: 'Lay-off / Retrenchment Compensation (Ch. IX)',
+    section: 'Sec. 67, 70',
+    status: ch9Applies ? 'applies' : 'notapplies',
+    note: ch9Applies
+      ? `Applicable — ${workers} workers ≥ 50 threshold. Lay-off compensation: 50% of basic wages + DA for first 45 days (workers with ≥1 yr service). Retrenchment: 1 month notice + 15 days wages per year of service.`
+      : `Not applicable — Chapter IX requires ≥50 workers average per working day in preceding calendar month. Current: ${workers} workers. Seasonal establishments are also excluded.`
+  });
+
+  // Chapter X — Prior Govt. Permission
+  const ch10Applies = workers >= 300;
+  ir.provisions.push({
+    name: 'Prior Govt. Permission (Lay-off/Retrenchment/Closure)',
+    section: 'Sec. 77–80',
+    status: ch10Applies ? 'applies' : 'notapplies',
+    note: ch10Applies
+      ? `Mandatory prior government permission — ${workers} workers ≥ 300 threshold. Retrenchment: 3 months notice (vs 1 month in Ch.IX). Closure: 90 days notice. Govt. to decide within 60 days (else deemed granted).`
+      : `Not applicable — Chapter X requires ≥300 workers average per working day in preceding 12 months. Current: ${workers} workers.`
+  });
+
+  // Fixed-term employment
+  if (fixedTerm) {
+    ir.provisions.push({
+      name: 'Fixed-Term Employment',
+      section: 'Sec. 2(l)',
+      status: 'applies',
+      note: 'Fixed-term workers entitled to same benefits as permanent workers. Gratuity payable on pro-rata basis after 1 year (no 5-year minimum requirement for FTE).'
+    });
+  }
+
+  // Closure notice — all ≥50
+  ir.provisions.push({
+    name: 'Closure Notice (60 days)',
+    section: 'Sec. 74',
+    status: ch9Applies ? 'applies' : 'notapplies',
+    note: ch9Applies
+      ? `60 days notice to appropriate Govt. required before closure. Applies to factories, mines, plantations with ≥50 workers.`
+      : `Not applicable — requires ≥50 workers.`
+  });
+
+  ir.overall = workers >= 300 ? 'applicable' : (workers >= 20 ? 'partial' : (workers >= 1 ? 'partial' : 'notapplies'));
+  if (workers < 1) ir.overall = 'notapplies';
+
+  // ─── CODE ON SOCIAL SECURITY ─────────────────────────────────────────
+  const ss = {
+    name: 'Code on Social Security, 2020',
+    act: 'Act No. 36 of 2020',
+    provisions: []
+  };
+
+  // EPF — Chapter III
+  const epfApplies = workers >= 20 && !isNGO;
+  const epfExcluded = (industry === 'ngo') || (industry === 'education' && isGovt);
+  ss.provisions.push({
+    name: 'EPF (Employees\' Provident Fund)',
+    section: 'Ch. III, First Sch.',
+    status: epfApplies && !epfExcluded ? 'applies' : 'notapplies',
+    note: epfApplies && !epfExcluded
+      ? `Applicable — ${workers} workers ≥ 20 threshold. Employer contribution: 12% of wages. Employee contribution: equal amount. Once applicable, continues even if workers fall below 20. Co-operatives < 50 persons working without power are exempt.`
+      : workers < 20
+      ? `Not applicable — Chapter III requires ≥20 employees. Current: ${workers} workers. Note: Voluntary coverage possible by mutual agreement under Sec. 1(5).`
+      : 'Co-operative societies with <50 persons working without aid of power are exempt under Sec. 20(1)(a).'
+  });
+
+  // ESIC — Chapter IV
+  const esicApplies = (workers >= 10 && !seasonal) || hazardous;
+  ss.provisions.push({
+    name: 'ESIC (Employees\' State Insurance)',
+    section: 'Ch. IV, First Sch.',
+    status: esicApplies ? 'applies' : (seasonal ? 'notapplies' : 'notapplies'),
+    note: esicApplies
+      ? `Applicable — ${workers} workers ≥ 10 threshold${hazardous ? ' (hazardous process: applies even to single employee)' : ''}. Contributions payable at rates prescribed by Central Govt. Once applicable, continues even if workers fall below 10.`
+      : seasonal
+      ? `Seasonal factory — Chapter IV does not apply to seasonal factories.`
+      : `Not applicable — Chapter IV requires ≥10 persons. Current: ${workers} workers. Note: Voluntary coverage possible by mutual agreement under Sec. 1(7).`
+  });
+
+  // Gratuity — Chapter V
+  const gratuityNoThreshold = isMine || isPlantation || isDock || ['factory_power','factory_nopower'].includes(industry);
+  const gratuityApplies = gratuityNoThreshold || workers >= 10;
+  ss.provisions.push({
+    name: 'Gratuity',
+    section: 'Ch. V, Sec. 53',
+    status: gratuityApplies ? 'applies' : 'notapplies',
+    note: gratuityApplies
+      ? gratuityNoThreshold
+        ? `Applicable — factory, mine, oilfield, plantation, port and railway companies are covered regardless of worker count. Payable after 5 years continuous service at 15 days\' wages per completed year. Fixed-term employees: pro-rata after 1 year.`
+        : `Applicable — ${workers} workers ≥ 10 threshold for shops/establishments. Payable after 5 years continuous service at 15 days\' wages per completed year.`
+      : `Not applicable — shops/establishments require ≥10 employees. Current: ${workers} workers.`
+  });
+
+  // Maternity Benefit — Chapter VI
+  const maternityNoThreshold = isMine || isPlantation || isFactory;
+  const maternityApplies = maternityNoThreshold || workers >= 10;
+  ss.provisions.push({
+    name: 'Maternity Benefit',
+    section: 'Ch. VI, First Sch.',
+    status: maternityApplies ? 'applies' : 'notapplies',
+    note: maternityApplies
+      ? maternityNoThreshold
+        ? `Applicable — factory, mine, plantation covered regardless of worker count. 26 weeks paid maternity leave (12 weeks if 2+ surviving children). Nursing breaks, no deduction of wages.`
+        : `Applicable — ${workers} workers ≥ 10 threshold for shops/establishments. 26 weeks paid maternity leave (12 weeks if 2+ surviving children).`
+      : `Not applicable — shops/establishments require ≥10 employees. Current: ${workers} workers.`
+  });
+
+  // Crèche
+  if (workers >= 50 || women50) {
+    ss.provisions.push({
+      name: 'Crèche Facility',
+      section: 'Sec. 67',
+      status: 'applies',
+      note: `Mandatory — ≥50 employees. Employer to provide crèche within prescribed distance (separately or as common facility). 4 visits per day to crèche allowed for women workers.`
+    });
+  }
+
+  // Employees' Compensation — Chapter VII
+  const ecApplies = !esicApplies && (isMine || isFactory || isConstruction || isPlantation || isDock || isTransport);
+  if (!esicApplies) {
+    ss.provisions.push({
+      name: 'Employees\' Compensation',
+      section: 'Ch. VII, Second Sch.',
+      status: ecApplies ? 'applies' : 'conditional',
+      note: ecApplies
+        ? `Applicable — applies where ESIC (Chapter IV) does NOT apply. Covers injury/death arising out of employment. Second Schedule lists covered employment categories broadly.`
+        : `May apply if this establishment is in a category listed in the Second Schedule of SS Code and ESIC does not apply. Review Second Schedule for specific occupation types.`
+    });
+  }
+
+  // Building workers cess
+  if (isConstruction) {
+    ss.provisions.push({
+      name: 'Building Workers\' Welfare Cess',
+      section: 'Ch. VIII, Sec. 100',
+      status: 'applies',
+      note: 'Cess payable by employer on every building and other construction work. Rate to be notified. Workers to be registered as beneficiaries for welfare benefits.'
+    });
+  }
+
+  // Gig/Platform
+  if (['it_ites', 'transport', 'other'].includes(industry)) {
+    ss.provisions.push({
+      name: 'Gig / Platform Worker Schemes',
+      section: 'Ch. IX, Sec. 114',
+      status: 'conditional',
+      note: 'If your establishment operates as an aggregator (ride-sharing, food delivery, logistics, e-marketplace, etc.) — Central Govt. schemes for gig and platform workers under Seventh Schedule may apply.'
+    });
+  }
+
+  ss.overall = 'applicable';
+  if (!epfApplies && !esicApplies && !gratuityApplies && !maternityApplies) ss.overall = 'partial';
+
+  // ─── OSH CODE ─────────────────────────────────────────────────────────
+  const osh = {
+    name: 'OSH & Working Conditions Code, 2020',
+    act: 'Act No. 37 of 2020',
+    provisions: []
+  };
+
+  // Registration
+  osh.provisions.push({
+    name: 'Registration',
+    section: 'Sec. 3',
+    status: oshApplies || workers >= 10 ? 'applies' : 'notapplies',
+    note: oshApplies || workers >= 10
+      ? `Mandatory electronic registration within 60 days of applicability. One registration covers factory, contract labour, and beedi/cigar licences (common licence under Sec. 119). Late fees apply for delayed registration.`
+      : `Registration required once establishment reaches 10 workers.`
+  });
+
+  // Factory provisions
+  if (isFactory) {
+    osh.provisions.push({
+      name: 'Factory — OSH Standards',
+      section: 'Sec. 2(w), 18',
+      status: factoryAppliesOSH ? 'applies' : 'notapplies',
+      note: factoryAppliesOSH
+        ? `Factory threshold met — ${workers} workers (with power ≥20 / without power ≥40). OSH standards, working conditions, and all factory provisions under Chapters III–VII apply. Approval/licensing under Sec. 79 required.`
+        : `Factory threshold NOT met. With power: requires ≥20 workers. Without power: requires ≥40 workers. Current: ${workers} workers. Note: Registration threshold (≥10 workers) still applies under Sec. 2(v)(iii).`
+    });
+  }
+
+  // Working hours
+  osh.provisions.push({
+    name: 'Hours of Work',
+    section: 'Sec. 25',
+    status: oshApplies ? 'applies' : 'notapplies',
+    note: oshApplies ? `Max 8 hours/day. Spread-over, intervals and weekly rest as notified by Appropriate Govt. Overtime: twice normal wages (Sec. 27). No more than 6 days in a week (Sec. 26).` : `Applies when OSH Code thresholds are met.`
+  });
+
+  // Annual leave
+  osh.provisions.push({
+    name: 'Annual Leave with Wages',
+    section: 'Sec. 32',
+    status: oshApplies ? 'applies' : 'notapplies',
+    note: oshApplies ? `1 day leave per 20 days worked (after working ≥180 days in the calendar year). Mine workers (below ground): 1 day per 15 days. Adolescents: 1 day per 15 days. Carry forward up to 30 days.` : `Applies when OSH Code thresholds are met.`
+  });
+
+  // Safety Officers
+  const safetyOfficerApplies = (isFactory && workers >= 500) || (isFactory && hazardous && workers >= 250) || (isConstruction && workers >= 250) || (isMine && workers >= 100);
+  osh.provisions.push({
+    name: 'Safety Officer',
+    section: 'Sec. 22(2)',
+    status: safetyOfficerApplies ? 'applies' : 'notapplies',
+    note: safetyOfficerApplies
+      ? `Mandatory — threshold met. Factory ≥500 workers; Hazardous factory ≥250; Construction ≥250; Mine ≥100.`
+      : `Not currently required. Thresholds: Factory ≥500 workers; Hazardous factory ≥250 workers; Construction site ≥250 workers; Mine ≥100 workers.`
+  });
+
+  // Welfare Officer
+  const welfareOfficerApplies = (isFactory || isMine || isPlantation) && workers >= 250;
+  osh.provisions.push({
+    name: 'Welfare Officer',
+    section: 'Sec. 24(2)(iv)',
+    status: welfareOfficerApplies ? 'applies' : 'notapplies',
+    note: welfareOfficerApplies
+      ? `Mandatory — ${workers} workers ≥ 250 threshold (factory/mine/plantation). Prescribed qualifications, conditions of service, and duties.`
+      : `Not required. Threshold: ≥250 workers in factory, mine, or plantation.`
+  });
+
+  // Canteen
+  const canteenApplies = workers >= 100;
+  osh.provisions.push({
+    name: 'Canteen',
+    section: 'Sec. 24(1)(v)',
+    status: canteenApplies ? 'applies' : 'notapplies',
+    note: canteenApplies
+      ? `Mandatory — ${workers} workers ≥ 100 threshold (including contract labourers). Adequate canteen facility to be provided and maintained.`
+      : `Not required. Threshold: ≥100 workers including contract labour.`
+  });
+
+  // Ambulance Room
+  const ambulanceApplies = workers > 500;
+  osh.provisions.push({
+    name: 'Ambulance Room',
+    section: 'Sec. 24(2)(i)',
+    status: ambulanceApplies ? 'applies' : 'notapplies',
+    note: ambulanceApplies
+      ? `Mandatory — ${workers} workers > 500. Ambulance room in every factory, mine, or construction work.`
+      : `Not required below 500 workers.`
+  });
+
+  // Contract labour
+  const clApplies = contractLabour >= 50;
+  osh.provisions.push({
+    name: 'Contract Labour Regulation',
+    section: 'Sec. 45 (Part I, Ch. XI)',
+    status: clApplies ? 'applies' : (contractLabour > 0 ? 'notapplies' : 'na'),
+    note: clApplies
+      ? `Applicable as principal employer — ${contractLabour} contract workers ≥ 50 threshold. Contractors must obtain licence. Contract labour prohibited in core activities (with exceptions). Principal employer liable for welfare facilities.`
+      : contractLabour > 0
+      ? `Not applicable as principal employer — ${contractLabour} contract workers below 50 threshold. Contractor also below threshold if < 50 workers.`
+      : `No contract labour engaged.`
+  });
+
+  // Inter-State Migrant Workers
+  if (interstate) {
+    osh.provisions.push({
+      name: 'Inter-State Migrant Worker Provisions',
+      section: 'Sec. 59 (Part II, Ch. XI)',
+      status: 'conditional',
+      note: `Applies to establishments with ≥10 ISM workers on any day in preceding 12 months. Obligations: suitable working conditions, journey allowance (to & fro native place annually), PDS portability, inclusion in database portal, fatal accident notice to both states.`
+    });
+  }
+
+  // Hazardous process special obligations
+  if (hazardous) {
+    osh.provisions.push({
+      name: 'Hazardous Process — Special Obligations',
+      section: 'Sec. 84, 85',
+      status: 'applies',
+      note: `Mandatory disclosures to workers, Inspector, local authority (Sec. 84). On-site emergency plan required. Health records for all exposed workers. Medical examination before assignment and periodically thereafter (max 12-month intervals). Site appraisal committee for initial location/expansion.`
+    });
+  }
+
+  // Plantation specific
+  if (isPlantation) {
+    osh.provisions.push({
+      name: 'Plantation Special Provisions',
+      section: 'Sec. 92, 93',
+      status: 'applies',
+      note: `Housing, drinking water, kitchen and toilet for workers and families. Crèche (≥50 workers). Educational facilities where >25 children aged 6–12. Health coverage (own facilities or ESI). Safety provisions for insecticides/pesticides — periodic medical examination mandatory.`
+    });
+  }
+
+  // Mine specific
+  if (isMine) {
+    osh.provisions.push({
+      name: 'Mine — Sole Manager',
+      section: 'Sec. 67',
+      status: 'applies',
+      note: `Every mine must have a sole manager with prescribed qualifications (Sec. 67). Failure to appoint: imprisonment up to 3 months or fine up to ₹1 lakh (Sec. 105). No person below 18 years allowed in mine (Sec. 70).`
+    });
+  }
+
+  osh.overall = oshApplies ? 'applicable' : (workers >= 10 ? 'partial' : 'notapplies');
+
+  // ─── RENDER ──────────────────────────────────────────────────────────
+  const codes = [wages, ir, ss, osh];
+  let applicable = 0, partial = 0, notApplicable = 0;
+  codes.forEach(c => {
+    if (c.overall === 'applicable') applicable++;
+    else if (c.overall === 'partial') partial++;
+    else notApplicable++;
+  });
+
+  const stateLabel = state || 'State not specified';
+  const industryLabels = {
+    factory_power: 'Factory (with power)', factory_nopower: 'Factory (without power)',
+    mine: 'Mine', plantation: 'Plantation', construction: 'Construction Work',
+    transport: 'Motor Transport', newspaper: 'Newspaper Est.', dock: 'Dock/Port',
+    beedi: 'Beedi & Cigar', it_ites: 'IT/ITeS', retail: 'Retail/Shop',
+    healthcare: 'Healthcare', education: 'Education', hospitality: 'Hospitality',
+    ngo: 'NGO/Charitable', other: 'Other Service'
+  };
+
+  let html = `
+    <div class="summary-bar">
+      <div>
+        <div class="summary-title">Applicability assessment for</div>
+        <div style="color:white;font-size:13px;margin-top:4px;font-weight:500;">
+          ${industryLabels[industry] || industry} · ${workers} workers · ${stateLabel}
+        </div>
+      </div>
+      <div class="summary-counts">
+        <div class="summary-count green">
+          <div class="summary-count-num">${applicable}</div>
+          <div class="summary-count-label">Applicable</div>
+        </div>
+        <div class="summary-count amber">
+          <div class="summary-count-num">${partial}</div>
+          <div class="summary-count-label">Partial</div>
+        </div>
+        <div class="summary-count red">
+          <div class="summary-count-num">${notApplicable}</div>
+          <div class="summary-count-label">Not Applicable</div>
+        </div>
+      </div>
+    </div>`;
+
+  codes.forEach((code, idx) => {
+    const statusClass = code.overall === 'applicable' ? 'status-applicable'
+      : code.overall === 'partial' ? 'status-partial' : 'status-not-applicable';
+    const statusLabel = code.overall === 'applicable' ? 'Applicable'
+      : code.overall === 'partial' ? 'Partially Applicable' : 'Not Applicable';
+
+    html += `
+      <div class="code-card ${idx < 2 ? 'open' : ''}" id="card-${idx}">
+        <div class="code-card-header" onclick="toggleCard(${idx})">
+          <div class="code-title-wrap">
+            <span class="code-number">${code.act}</span>
+            <span class="code-name">${code.name}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:0">
+            <span class="code-status-badge ${statusClass}">
+              <span class="status-dot"></span>${statusLabel}
+            </span>
+            <span class="chevron">▾</span>
+          </div>
+        </div>
+        <div class="code-card-body">
+          <table class="provisions-table">`;
+
+    code.provisions.forEach(p => {
+      const sc = p.status === 'applies' ? 'prov-applies'
+        : p.status === 'notapplies' ? 'prov-notapplies'
+        : p.status === 'conditional' ? 'prov-conditional' : 'prov-na';
+      const sl = p.status === 'applies' ? '✓ Applies'
+        : p.status === 'notapplies' ? '✗ Not Applicable'
+        : p.status === 'conditional' ? '◐ Conditional' : '— N/A';
+      html += `
+            <tr>
+              <td>
+                <div style="margin-bottom:4px;">${p.name}</div>
+                <span class="section-ref">${p.section}</span>
+              </td>
+              <td>
+                <span class="${sc}" style="display:block;margin-bottom:4px;">${sl}</span>
+                <span style="color:var(--muted);font-size:12px;">${p.note}</span>
+              </td>
+            </tr>`;
+    });
+
+    html += `</table>`;
+
+    // Next steps
+    const steps = getNextSteps(code.name, code.overall, workers, industry, hazardous, contractLabour, fixedTerm);
+    if (steps.length > 0) {
+      html += `<div class="next-steps"><div class="next-steps-title">Immediate Action Items</div><ul>`;
+      steps.forEach(s => { html += `<li>${s}</li>`; });
+      html += `</ul></div>`;
+    }
+
+    html += `<div class="code-watermark">Source: Bare Act verified · ${code.act}</div></div></div>`;
+  });
+
+  html += `
+    <div class="disclaimer">
+      <strong>Legal Disclaimer:</strong> This assessment is based on a plain reading of the four Labour Code bare acts (as notified through November 2025). Thresholds are based on: 
+      Code on Wages (Act 29/2019) · Industrial Relations Code (Act 35/2020) · Code on Social Security (Act 36/2020) · OSH Code (Act 37/2020).
+      State-specific rules, notifications, and amendments under each Code may vary. This tool does not constitute legal advice. 
+      Consult a qualified labour law practitioner for compliance matters. Some Code provisions are yet to be notified/brought into force.
+    </div>`;
+
+  document.getElementById('results-panel').innerHTML = html;
+  document.getElementById('export-toolbar').classList.add('visible');
+}
+
+function copyReport() {
+  const panel = document.getElementById('results-panel');
+  const text = panel.innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = event.target;
+    btn.textContent = '✓ Copied!';
+    setTimeout(() => btn.textContent = '⧉ Copy Report', 2000);
+  });
+}
+
+function getNextSteps(codeName, overall, workers, industry, hazardous, contractLabour, fixedTerm) {
+  const steps = [];
+  if (codeName.includes('Wages')) {
+    steps.push('Register with the Shram Suvidha Portal and obtain LIN (Labour Identification Number)');
+    steps.push('Obtain latest applicable minimum wage notification from the appropriate Government');
+    if (workers >= 20) steps.push('Set up annual bonus computation cycle (accounting year basis)');
+    steps.push('Implement wage payment mechanism to meet statutory timelines (Sec. 17)');
+  }
+  if (codeName.includes('Industrial Relations')) {
+    if (workers >= 20) steps.push('Constitute Grievance Redressal Committee with equal employer/worker representation (Sec. 4)');
+    if (workers >= 100) steps.push('Constitute Works Committee — workers\' reps ≥ employer reps (Sec. 3)');
+    if (workers >= 300) steps.push('Prepare/adopt Model Standing Orders within 6 months (Sec. 28)');
+    if (workers >= 50) steps.push('Maintain lay-off/retrenchment register; ensure continuous service records (Sec. 54)');
+    if (workers >= 300) steps.push('Note: prior government permission required before any lay-off, retrenchment or closure (Ch. X)');
+    if (fixedTerm) steps.push('Ensure fixed-term employment agreements specify all statutory benefits (Sec. 2(l))');
+  }
+  if (codeName.includes('Social Security')) {
+    if (workers >= 20) steps.push('Register on EPFO portal; obtain PF code; enrol all eligible employees within prescribed time');
+    if (workers >= 10) steps.push('Register on ESIC portal; obtain ESI code; obtain state-wise coverage notification');
+    steps.push('Establish gratuity fund or obtain approved gratuity insurance (Sec. 57)');
+    if (workers >= 50) steps.push('Set up crèche facility or join common crèche arrangement (Sec. 67)');
+  }
+  if (codeName.includes('OSH')) {
+    steps.push('Register establishment electronically within 60 days under Sec. 3 (common licence)');
+    steps.push('Issue appointment letters to all employees (mandatory under Sec. 6(f))');
+    if (workers >= 100) steps.push('Set up canteen facility (Sec. 24(1)(v))');
+    if (workers >= 250 && ['factory_power','factory_nopower','mine','plantation'].includes(industry)) steps.push('Appoint Welfare Officer with prescribed qualifications (Sec. 24(2)(iv))');
+    if (workers >= 500) steps.push('Appoint Safety Officer(s) — factory ≥500 workers (Sec. 22(2))');
+    if (hazardous) steps.push('Disclose all hazard information to workers, Inspector, and local authority (Sec. 84); prepare on-site emergency plan');
+    if (contractLabour >= 50) steps.push('Ensure all contractors hold valid licences under Sec. 47; verify welfare compliance');
+  }
+  return steps;
+}
+
+function toggleCard(idx) {
+  const card = document.getElementById('card-' + idx);
+  card.classList.toggle('open');
+}
+</script>
+
+<footer class="creator-footer">
+  <div class="creator-footer-left">
+    <div class="creator-label">Tool designed &amp; developed by</div>
+    <div class="creator-name">Ishwari Chaudhari</div>
+    <div style="font-family:'DM Mono',monospace;font-size:10px;color:rgba(245,240,232,0.35);margin-top:2px;letter-spacing:0.1em;">SECOND-YEAR STUDENT · HR TECH &amp; PEOPLE ANALYTICS</div>
+  </div>
+  <div class="creator-footer-right">
+    <a href="https://www.linkedin.com/in/ishwari-chaudhari-143553217" target="_blank" class="creator-link">linkedin.com/in/ishwari-chaudhari</a>
+    <span style="color:rgba(184,134,11,0.3);">|</span>
+    <span style="font-family:'DM Mono',monospace;font-size:10px;color:rgba(245,240,232,0.3);letter-spacing:0.08em;">© 2025 Ishwari Chaudhari</span>
+  </div>
+</footer>
+
+</body>
+</html>
